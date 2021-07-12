@@ -1,0 +1,414 @@
+from strategy import Strategy_Baseline
+
+################################################################################
+SNAPSHOT_QUEUE_SIZE = 5
+################################################################################
+
+
+
+################################################################################
+NAME = 'BEAR-'
+ACTIVATION_INTERVAL = (0, 1 / 6)
+
+SNAPSHOT_REFRESH_RATE = 1 * 3600  # seconds
+
+# Configure trading strategy
+CF_DELTA_THRESHOLD = 0.65  # %
+CF_REBOUND_RATIO = 0.1
+
+FC_DELTA_THRESHOLD = 5.25  # %
+FC_REBOUND_RATIO = 0.125
+
+REBOUND_WAIT_TIME = 3 * 86400  # seconds
+
+# Configure suspension strategy
+SUSPENSION_THRESHOLD = 5.5  # %
+SUSPENSION_TIME = 3 * 86400  # seconds
+
+# Configure profit retention strategy
+PROFIT_RETENTION_ACTIVATION_POSITIVE = 0.6  # %
+PROFIT_RETENTION_ACTIVATION_NEGATIVE = 3  # %
+
+# Configure confirmation setting
+BUY_CONFIRMATION_REPETITION = 3
+BUY_CONFIRMATION_DELAY = 1  # seconds
+
+SELL_CONFIRMATION_REPETITION = 0
+SELL_CONFIRMATION_DELAY = 0
+
+
+IDENTITY_CONFIGURATION = {
+    'NAME': NAME,
+    'INTERVAL': ACTIVATION_INTERVAL
+}
+
+TRADING_CONFIGURATION = {
+    'CF': (CF_DELTA_THRESHOLD, CF_REBOUND_RATIO),
+    'FC': (FC_DELTA_THRESHOLD, FC_REBOUND_RATIO),
+    'REBOUND_WAIT_TIME': REBOUND_WAIT_TIME}
+
+PRUNING_CONFIGURATION = {
+    'SNAPSHOT': (SUSPENSION_THRESHOLD, SUSPENSION_TIME)}
+
+PROFIT_RETENTION_CONFIGURATION = (PROFIT_RETENTION_ACTIVATION_POSITIVE,
+                                  PROFIT_RETENTION_ACTIVATION_NEGATIVE)
+
+CONFIRMATION_CONFIGURATION = {
+    'BUY': (BUY_CONFIRMATION_REPETITION, BUY_CONFIRMATION_DELAY),
+    'SELL': (SELL_CONFIRMATION_REPETITION, SELL_CONFIRMATION_DELAY)}
+
+bear_minus = Strategy_Baseline(IDENTITY_CONFIGURATION,
+                               SNAPSHOT_REFRESH_RATE,
+                               TRADING_CONFIGURATION,
+                               PRUNING_CONFIGURATION,
+                               PROFIT_RETENTION_CONFIGURATION,
+                               CONFIRMATION_CONFIGURATION)
+################################################################################
+
+################################################################################
+NAME = 'BEAR'
+ACTIVATION_INTERVAL = (1 / 6, 2 / 6)
+
+SNAPSHOT_REFRESH_RATE = 1 * 3600  # seconds
+
+# Configure trading strategy
+CF_DELTA_THRESHOLD = 0.65  # %
+CF_REBOUND_RATIO = 0.175
+
+FC_DELTA_THRESHOLD = 3.65  # %
+FC_REBOUND_RATIO = 0.15
+
+REBOUND_WAIT_TIME = 3 * 86400  # seconds
+
+# Configure suspension strategy
+SUSPENSION_THRESHOLD = 5.5  # %
+SUSPENSION_TIME = 3 * 86400  # seconds
+
+# Configure profit retention strategy
+PROFIT_RETENTION_ACTIVATION_POSITIVE = 0.65  # %
+PROFIT_RETENTION_ACTIVATION_NEGATIVE = 3  # %
+
+# Configure confirmation setting
+BUY_CONFIRMATION_REPETITION = 3
+BUY_CONFIRMATION_DELAY = 1  # seconds
+
+SELL_CONFIRMATION_REPETITION = 1
+SELL_CONFIRMATION_DELAY = 1  # seconds
+
+IDENTITY_CONFIGURATION = {
+    'NAME': NAME,
+    'INTERVAL': ACTIVATION_INTERVAL
+}
+
+TRADING_CONFIGURATION = {
+    'CF': (CF_DELTA_THRESHOLD, CF_REBOUND_RATIO),
+    'FC': (FC_DELTA_THRESHOLD, FC_REBOUND_RATIO),
+    'REBOUND_WAIT_TIME': REBOUND_WAIT_TIME}
+
+PRUNING_CONFIGURATION = {
+    'SNAPSHOT': (SUSPENSION_THRESHOLD, SUSPENSION_TIME)}
+
+PROFIT_RETENTION_CONFIGURATION = (PROFIT_RETENTION_ACTIVATION_POSITIVE,
+                                  PROFIT_RETENTION_ACTIVATION_NEGATIVE)
+
+CONFIRMATION_CONFIGURATION = {
+    'BUY': (BUY_CONFIRMATION_REPETITION, BUY_CONFIRMATION_DELAY),
+    'SELL': (SELL_CONFIRMATION_REPETITION, SELL_CONFIRMATION_DELAY)}
+
+bear = Strategy_Baseline(IDENTITY_CONFIGURATION,
+                         SNAPSHOT_REFRESH_RATE,
+                         TRADING_CONFIGURATION,
+                         PRUNING_CONFIGURATION,
+                         PROFIT_RETENTION_CONFIGURATION,
+                         CONFIRMATION_CONFIGURATION)
+################################################################################
+
+################################################################################
+NAME = 'BEAR+'
+ACTIVATION_INTERVAL = (2 / 6, 3 / 6)
+
+SNAPSHOT_REFRESH_RATE = 1 * 3600  # seconds
+
+# Configure trading strategy
+CF_DELTA_THRESHOLD = 0.75  # %
+CF_REBOUND_RATIO = 0.2
+
+FC_DELTA_THRESHOLD = 2.25  # %
+FC_REBOUND_RATIO = 0.225
+
+REBOUND_WAIT_TIME = 3 * 86400  # seconds
+
+# Configure suspension strategy
+SUSPENSION_THRESHOLD = 5.5  # %
+SUSPENSION_TIME = 3 * 86400  # seconds
+
+# Configure profit retention strategy
+PROFIT_RETENTION_ACTIVATION_POSITIVE = 0.65  # %
+PROFIT_RETENTION_ACTIVATION_NEGATIVE = 3  # %
+
+# Configure confirmation setting
+BUY_CONFIRMATION_REPETITION = 3
+BUY_CONFIRMATION_DELAY = 1  # seconds
+
+SELL_CONFIRMATION_REPETITION = 2
+SELL_CONFIRMATION_DELAY = 1  # seconds
+
+IDENTITY_CONFIGURATION = {
+    'NAME': NAME,
+    'INTERVAL': ACTIVATION_INTERVAL
+}
+
+TRADING_CONFIGURATION = {
+    'CF': (CF_DELTA_THRESHOLD, CF_REBOUND_RATIO),
+    'FC': (FC_DELTA_THRESHOLD, FC_REBOUND_RATIO),
+    'REBOUND_WAIT_TIME': REBOUND_WAIT_TIME}
+
+PRUNING_CONFIGURATION = {
+    'SNAPSHOT': (SUSPENSION_THRESHOLD, SUSPENSION_TIME)}
+
+PROFIT_RETENTION_CONFIGURATION = (PROFIT_RETENTION_ACTIVATION_POSITIVE,
+                                  PROFIT_RETENTION_ACTIVATION_NEGATIVE)
+
+CONFIRMATION_CONFIGURATION = {
+    'BUY': (BUY_CONFIRMATION_REPETITION, BUY_CONFIRMATION_DELAY),
+    'SELL': (SELL_CONFIRMATION_REPETITION, SELL_CONFIRMATION_DELAY)}
+
+bear_plus = Strategy_Baseline(IDENTITY_CONFIGURATION,
+                              SNAPSHOT_REFRESH_RATE,
+                              TRADING_CONFIGURATION,
+                              PRUNING_CONFIGURATION,
+                              PROFIT_RETENTION_CONFIGURATION,
+                              CONFIRMATION_CONFIGURATION)
+################################################################################
+
+################################################################################
+NAME = 'BULL-'
+ACTIVATION_INTERVAL = (3 / 6, 4 / 6)
+
+SNAPSHOT_REFRESH_RATE = 1 * 3600  # seconds
+
+# Configure trading strategy
+CF_DELTA_THRESHOLD = 1  # %
+CF_REBOUND_RATIO = 0.25
+
+FC_DELTA_THRESHOLD = 1.65  # %
+FC_REBOUND_RATIO = 0.15
+
+REBOUND_WAIT_TIME = 3 * 86400  # seconds
+
+# Configure suspension strategy
+SUSPENSION_THRESHOLD = 5.5  # %
+SUSPENSION_TIME = 3 * 86400  # seconds
+
+# Configure profit retention strategy
+PROFIT_RETENTION_ACTIVATION_POSITIVE = 0.7  # %
+PROFIT_RETENTION_ACTIVATION_NEGATIVE = 3  # %
+
+# Configure confirmation setting
+BUY_CONFIRMATION_REPETITION = 2
+BUY_CONFIRMATION_DELAY = 1  # seconds
+
+SELL_CONFIRMATION_REPETITION = 2
+SELL_CONFIRMATION_DELAY = 1  # seconds
+
+IDENTITY_CONFIGURATION = {
+    'NAME': NAME,
+    'INTERVAL': ACTIVATION_INTERVAL
+}
+
+TRADING_CONFIGURATION = {
+    'CF': (CF_DELTA_THRESHOLD, CF_REBOUND_RATIO),
+    'FC': (FC_DELTA_THRESHOLD, FC_REBOUND_RATIO),
+    'REBOUND_WAIT_TIME': REBOUND_WAIT_TIME}
+
+PRUNING_CONFIGURATION = {
+    'SNAPSHOT': (SUSPENSION_THRESHOLD, SUSPENSION_TIME)}
+
+PROFIT_RETENTION_CONFIGURATION = (PROFIT_RETENTION_ACTIVATION_POSITIVE,
+                                  PROFIT_RETENTION_ACTIVATION_NEGATIVE)
+
+CONFIRMATION_CONFIGURATION = {
+    'BUY': (BUY_CONFIRMATION_REPETITION, BUY_CONFIRMATION_DELAY),
+    'SELL': (SELL_CONFIRMATION_REPETITION, SELL_CONFIRMATION_DELAY)}
+
+bull_minus = Strategy_Baseline(IDENTITY_CONFIGURATION,
+                               SNAPSHOT_REFRESH_RATE,
+                               TRADING_CONFIGURATION,
+                               PRUNING_CONFIGURATION,
+                               PROFIT_RETENTION_CONFIGURATION,
+                               CONFIRMATION_CONFIGURATION)
+################################################################################
+
+################################################################################
+NAME = 'BULL'
+ACTIVATION_INTERVAL = (4 / 6, 5 / 6)
+
+SNAPSHOT_REFRESH_RATE = 1 * 3600  # seconds
+
+# Configure trading strategy
+CF_DELTA_THRESHOLD = 1.15  # %
+CF_REBOUND_RATIO = 0.3
+
+FC_DELTA_THRESHOLD = 1.15  # %
+FC_REBOUND_RATIO = 0.175
+
+REBOUND_WAIT_TIME = 3 * 86400  # seconds
+
+# Configure suspension strategy
+SUSPENSION_THRESHOLD = 5.5  # %
+SUSPENSION_TIME = 3 * 86400  # seconds
+
+# Configure profit retention strategy
+PROFIT_RETENTION_ACTIVATION_POSITIVE = 0.75  # %
+PROFIT_RETENTION_ACTIVATION_NEGATIVE = 3  # %
+
+# Configure confirmation setting
+BUY_CONFIRMATION_REPETITION = 1
+BUY_CONFIRMATION_DELAY = 1  # seconds
+
+SELL_CONFIRMATION_REPETITION = 2
+SELL_CONFIRMATION_DELAY = 1  # seconds
+
+IDENTITY_CONFIGURATION = {
+    'NAME': NAME,
+    'INTERVAL': ACTIVATION_INTERVAL
+}
+
+TRADING_CONFIGURATION = {
+    'CF': (CF_DELTA_THRESHOLD, CF_REBOUND_RATIO),
+    'FC': (FC_DELTA_THRESHOLD, FC_REBOUND_RATIO),
+    'REBOUND_WAIT_TIME': REBOUND_WAIT_TIME}
+
+PRUNING_CONFIGURATION = {
+    'SNAPSHOT': (SUSPENSION_THRESHOLD, SUSPENSION_TIME)}
+
+PROFIT_RETENTION_CONFIGURATION = (PROFIT_RETENTION_ACTIVATION_POSITIVE,
+                                  PROFIT_RETENTION_ACTIVATION_NEGATIVE)
+
+CONFIRMATION_CONFIGURATION = {
+    'BUY': (BUY_CONFIRMATION_REPETITION, BUY_CONFIRMATION_DELAY),
+    'SELL': (SELL_CONFIRMATION_REPETITION, SELL_CONFIRMATION_DELAY)}
+
+bull = Strategy_Baseline(IDENTITY_CONFIGURATION,
+                         SNAPSHOT_REFRESH_RATE,
+                         TRADING_CONFIGURATION,
+                         PRUNING_CONFIGURATION,
+                         PROFIT_RETENTION_CONFIGURATION,
+                         CONFIRMATION_CONFIGURATION)
+################################################################################
+
+################################################################################
+NAME = 'BULL+'
+ACTIVATION_INTERVAL = (5 / 6, 5.5 / 6)
+
+SNAPSHOT_REFRESH_RATE = 1 * 3600  # seconds
+
+# Configure trading strategy
+CF_DELTA_THRESHOLD = 1.5  # %
+CF_REBOUND_RATIO = 0.35
+
+FC_DELTA_THRESHOLD = 0.75  # %
+FC_REBOUND_RATIO = 0.15
+
+REBOUND_WAIT_TIME = 3 * 86400  # seconds
+
+# Configure suspension strategy
+SUSPENSION_THRESHOLD = 5.5  # %
+SUSPENSION_TIME = 3 * 86400  # seconds
+
+# Configure profit retention strategy
+PROFIT_RETENTION_ACTIVATION_POSITIVE = 0.75  # %
+PROFIT_RETENTION_ACTIVATION_NEGATIVE = 3  # %
+
+# Configure confirmation setting
+BUY_CONFIRMATION_REPETITION = 1
+BUY_CONFIRMATION_DELAY = 1  # seconds
+
+SELL_CONFIRMATION_REPETITION = 3
+SELL_CONFIRMATION_DELAY = 1  # seconds
+
+IDENTITY_CONFIGURATION = {
+    'NAME': NAME,
+    'INTERVAL': ACTIVATION_INTERVAL
+}
+
+TRADING_CONFIGURATION = {
+    'CF': (CF_DELTA_THRESHOLD, CF_REBOUND_RATIO),
+    'FC': (FC_DELTA_THRESHOLD, FC_REBOUND_RATIO),
+    'REBOUND_WAIT_TIME': REBOUND_WAIT_TIME}
+
+PRUNING_CONFIGURATION = {
+    'SNAPSHOT': (SUSPENSION_THRESHOLD, SUSPENSION_TIME)}
+
+PROFIT_RETENTION_CONFIGURATION = (PROFIT_RETENTION_ACTIVATION_POSITIVE,
+                                  PROFIT_RETENTION_ACTIVATION_NEGATIVE)
+
+CONFIRMATION_CONFIGURATION = {
+    'BUY': (BUY_CONFIRMATION_REPETITION, BUY_CONFIRMATION_DELAY),
+    'SELL': (SELL_CONFIRMATION_REPETITION, SELL_CONFIRMATION_DELAY)}
+
+bull_plus = Strategy_Baseline(IDENTITY_CONFIGURATION,
+                              SNAPSHOT_REFRESH_RATE,
+                              TRADING_CONFIGURATION,
+                              PRUNING_CONFIGURATION,
+                              PROFIT_RETENTION_CONFIGURATION,
+                              CONFIRMATION_CONFIGURATION)
+################################################################################
+
+################################################################################
+NAME = 'BULL++'
+ACTIVATION_INTERVAL = (5.5 / 6, 1)
+
+SNAPSHOT_REFRESH_RATE = 1 * 3600  # seconds
+
+# Configure trading strategy
+CF_DELTA_THRESHOLD = 1.5  # %
+CF_REBOUND_RATIO = 0.35
+
+FC_DELTA_THRESHOLD = 0.65  # %
+FC_REBOUND_RATIO = 0.15
+
+REBOUND_WAIT_TIME = 3 * 86400  # seconds
+
+# Configure suspension strategy
+SUSPENSION_THRESHOLD = 5.5  # %
+SUSPENSION_TIME = 3 * 86400  # seconds
+
+# Configure profit retention strategy
+PROFIT_RETENTION_ACTIVATION_POSITIVE = 0.75  # %
+PROFIT_RETENTION_ACTIVATION_NEGATIVE = 3  # %
+
+# Configure confirmation setting
+BUY_CONFIRMATION_REPETITION = 0
+BUY_CONFIRMATION_DELAY = 0  # seconds
+
+SELL_CONFIRMATION_REPETITION = 4
+SELL_CONFIRMATION_DELAY = 1  # seconds
+
+IDENTITY_CONFIGURATION = {
+    'NAME': NAME,
+    'INTERVAL': ACTIVATION_INTERVAL
+}
+
+TRADING_CONFIGURATION = {
+    'CF': (CF_DELTA_THRESHOLD, CF_REBOUND_RATIO),
+    'FC': (FC_DELTA_THRESHOLD, FC_REBOUND_RATIO),
+    'REBOUND_WAIT_TIME': REBOUND_WAIT_TIME}
+
+PRUNING_CONFIGURATION = {
+    'SNAPSHOT': (SUSPENSION_THRESHOLD, SUSPENSION_TIME)}
+
+PROFIT_RETENTION_CONFIGURATION = (PROFIT_RETENTION_ACTIVATION_POSITIVE,
+                                  PROFIT_RETENTION_ACTIVATION_NEGATIVE)
+
+CONFIRMATION_CONFIGURATION = {
+    'BUY': (BUY_CONFIRMATION_REPETITION, BUY_CONFIRMATION_DELAY),
+    'SELL': (SELL_CONFIRMATION_REPETITION, SELL_CONFIRMATION_DELAY)}
+
+bull_plus_plus = Strategy_Baseline(IDENTITY_CONFIGURATION,
+                                   SNAPSHOT_REFRESH_RATE,
+                                   TRADING_CONFIGURATION,
+                                   PRUNING_CONFIGURATION,
+                                   PROFIT_RETENTION_CONFIGURATION,
+                                   CONFIRMATION_CONFIGURATION)
+################################################################################
