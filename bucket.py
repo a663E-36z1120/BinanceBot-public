@@ -3,8 +3,6 @@ from api import client
 import time
 
 
-
-
 class Bucket:
     def __init__(self, lst: List[str], snapshot_queue_size):
         self.lst = lst
@@ -58,7 +56,6 @@ class Bucket:
     def unsuspend(self, index=0):
         self.lst.append(self.suspension_queue.pop(index)[0])
 
-    # TODO
     def take_snapshot(self):
         """Take a snapshot and calculate the average in the queue"""
         self.snapshot_queue.append(self.get_prices())

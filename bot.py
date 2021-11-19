@@ -2,6 +2,8 @@ import time
 from typing import Dict, Tuple
 from strategy import *
 from bucket import Bucket
+from customized_behaviour import customized_behaviour
+from strategies_avg_baselines import SNAPSHOT_QUEUE_SIZE, SNAPSHOT_REFRESH_RATE
 
 import math
 
@@ -15,18 +17,29 @@ class Bot:
         # Bucket Initialization
         self.bucket = bucket
 
+        # Strategy Initialization
         self.strategy_baselines = strategy_configuration['BASELINE']
         self.strategy_multipliers_24hr = strategy_configuration['24HR']
         self.strategy_multipliers_latest = strategy_configuration['LATEST']
+        self.strategy_multipliers_inversion = strategy_configuration[
+            'INVERSION']
 
         self.strategy_baseline = strategy_configuration['BASELINE'][0]
         self.strategy_multiplier_24hr = strategy_configuration['24HR'][0]
         self.strategy_multiplier_latest = strategy_configuration['LATEST'][0]
+        self.strategy_multiplier_inversion = \
+        strategy_configuration['INVERSION'][0]
 
-        self.strategy = Strategy(self.strategy_baseline, self.strategy_multiplier_24hr,
-                                 self.strategy_multiplier_latest)
+        self.strategy = Strategy(self.strategy_baseline,
+                                 self.strategy_multiplier_24hr,
+                                 self.strategy_multiplier_latest,
+                                 self.strategy_multiplier_inversion)
+        self.strategy_indicator = {'BASELINE': 0.0, '24HR': 0.0, 'LATEST': 0.0,
+                                   'INVERSION': 0.0}
+
+        self.strategy_queue = []
+
         # Portfolio and Market Initialization
-
         self.current_holding = initial_holding
         if initial_holding != 'USDT':
             price = float(
@@ -54,6 +67,10 @@ class Bot:
 
         self.last_trade_time = time.time()
 
+        # Trading loop varaibles
+        self.rebound_price_snapshot = None
+        self.last_sell_time = time.time()
+
     def run(self):
         try:
             exit_ = False
@@ -66,12 +83,16 @@ class Bot:
                 # Bucket pruning logic and loop
                 self._pruning_loop()
 
-                if self.current_holding == 'USDT':
-                    # Fiat-Crypto trading activation logic and loop
-                    self._fc_trading_loop()
-                else:
-                    # Crypto-Fiat trading activation logic and loop
-                    self._cf_trading_loop()
+                if not self.cooldown():
+
+                    customized_behaviour()
+
+                    if self.current_holding == 'USDT':
+                        # Fiat-Crypto trading activation logic and loop
+                        self._fc_trading_loop()
+                    else:
+                        # Crypto-Fiat trading activation logic and loop
+                        self._cf_trading_loop()
 
                 # Check exit strategy
                 exit_ = self._exit()
@@ -116,16 +137,16 @@ class Bot:
                 f'  @{price} USDT/{self.current_holding}' \
                 f'  ${float(price) * balance} USDT' \
                 f'   ||   Current profit: ' \
-                f'${float(price) * balance - self.initial_value} USDT'\
+                f'${float(price) * balance - self.initial_value} USDT' \
                 f'\nCurrent strategy: ' \
-                f'{self.strategy.name}'
+                f'{self.strategy.name}, \n{self.strategy_indicator}'
         else:
             s = f'Current balance: ' \
                 f'{balance} USDT' \
                 f'   ||   Current profit: ' \
                 f'${balance - self.initial_value} USDT' \
                 f'\nCurrent strategy: ' \
-                f'{self.strategy.name}'
+                f'{self.strategy.name}, \n{self.strategy_indicator}'
         return s
 
     def _strategize(self) -> bool:
@@ -135,15 +156,43 @@ class Bot:
         sum_24hr = 0
         sum_latest = 0
 
+        latest_baseline = {}
+        for coin in self.bucket.snapshot_queue[0][0]:
+            lst_snapshot = []
+            for i in range(min(self.strategy.latest_snapshot_count,
+                               len(self.bucket.snapshot_queue))):
+                lst_snapshot.append(
+                    self.bucket.snapshot_queue[-(i + 1)][0][coin][0])
+            avg_snapshot = sum(lst_snapshot) / len(lst_snapshot)
+
+            latest_baseline[coin] = avg_snapshot
+
         for coin in self.bucket.prices[0]:
 
             current_price = self.get_price(coin)
             if current_price > self.bucket.average_snapshot[0][coin][0]:
                 sum_avg += 1
-            if current_price > self.bucket.snapshot_queue[-1][0][coin][0]:
+            if current_price > latest_baseline[coin]:
                 sum_latest += 1
             if self.get_24hr_change(coin) > 0:
                 sum_24hr += 1
+
+        self.strategy_indicator['BASELINE'] = sum_avg / cardinality
+        self.strategy_indicator['24HR'] = sum_24hr / cardinality
+        self.strategy_indicator['LATEST'] = sum_latest / cardinality
+
+        if (not self.strategy_queue) or time.time() - self.strategy_queue[-1][
+            -1] > SNAPSHOT_REFRESH_RATE:
+            self.strategy_queue.append(
+                (self.strategy_indicator['BASELINE'], time.time()))
+            if len(self.strategy_queue) > SNAPSHOT_QUEUE_SIZE:
+                self.strategy_queue.pop(0)
+
+        inversion_indicator = self.strategy_indicator['BASELINE'] - \
+                              sum(i for i, j in self.strategy_queue) / len(
+            self.strategy_queue)
+
+        self.strategy_indicator['INVERSION'] = inversion_indicator
 
         switched = False
 
@@ -183,9 +232,21 @@ class Bot:
                     self.strategy_multiplier_latest = mlatest
                 break
 
+        for inversion in self.strategy_multipliers_inversion:
+            if inversion.interval[0] <= inversion_indicator <= \
+                    inversion.interval[1]:
+                if self.strategy_multiplier_inversion.name != inversion.name:
+                    print(
+                        f'Switching inversion multiplier: {self.strategy_multiplier_inversion.name} -> {inversion.name}')
+                    switched |= True
+                    self.strategy_multiplier_inversion = inversion
+                break
+
         if switched:
-            self.strategy = Strategy(self.strategy_baseline, self.strategy_multiplier_24hr,
-                                     self.strategy_multiplier_latest)
+            self.strategy = Strategy(self.strategy_baseline,
+                                     self.strategy_multiplier_24hr,
+                                     self.strategy_multiplier_latest,
+                                     self.strategy_multiplier_inversion)
 
         return switched
 
@@ -218,7 +279,8 @@ class Bot:
         bucket_delta = self.bucket.max_fall()
 
         target_price = self.get_price(bucket_delta[0])
-        target_price_snapshot = self.bucket.average_snapshot[0][bucket_delta[0]][0]
+        target_price_snapshot = \
+        self.bucket.average_snapshot[0][bucket_delta[0]][0]
 
         target_delta = 100 * (
                 target_price - target_price_snapshot) / target_price_snapshot
@@ -226,10 +288,10 @@ class Bot:
             f'[Fiat-Crypto] delta = {-(target_delta)}% with {bucket_delta[0]} (latest price snapshot average)')
 
         # Realignment Mechanism
-        if target_delta >= 0:
-            print('Realignment mechanism triggered')
-            self.bucket.take_snapshot()
-            print('Price snapshot enqueued')
+        # if target_delta >= 0:
+        #     print('Realignment mechanism triggered')
+        #     self.bucket.take_snapshot()
+        #     print('Price snapshot enqueued')
 
         if target_delta < -self.strategy.fc_delta_threshold:
             print(
@@ -240,28 +302,33 @@ class Bot:
             t_delta = time.time() - start_time
             traded = False
             aborted = False
+            self.rebound_price_snapshot = self.bucket.average_snapshot
 
             while t_delta < self.strategy.rebound_wait_time:
+
+                self._snapshot_refresh()
 
                 switched = self._strategize()
 
                 bucket_delta_new = self.bucket.max_fall()
-                target_price_snapshot = self.bucket.average_snapshot[0][
+                target_price_snapshot = self.rebound_price_snapshot[0][
                     bucket_delta_new[0]][0]
                 self.bucket.prices = self.bucket.get_prices()
 
                 t_delta = time.time() - start_time
                 new_price = self.get_price(bucket_delta_new[0])
-                new_target_delta = (new_price - target_price_snapshot) / target_price_snapshot * 100
+                new_target_delta = (
+                                               new_price - target_price_snapshot) / target_price_snapshot * 100
 
                 rebound_ratio = (target_delta - new_target_delta) / target_delta
 
                 print(
                     f'    rebound_ratio = {rebound_ratio} for {bucket_delta_new[0]} '
-                    f'    delta = {new_target_delta}%'
+                    f'    delta = {-new_target_delta}%'
                     f'    @t_delta = {t_delta}s')
 
-                if switched and not (new_target_delta < -self.strategy.fc_delta_threshold):
+                if switched and not (
+                        new_target_delta < -self.strategy.fc_delta_threshold):
                     print(
                         f'Delta threshold is no longer exceeded for the current strategy, aborting trading loop...')
                     aborted = True
@@ -273,7 +340,8 @@ class Bot:
                         f'Confirming...')
 
                     if self.confirm(self._fc_confirmation_logic, target_delta,
-                                    self.strategy.buy_confirmation_repetition, self.strategy.buy_confirmation_time):
+                                    self.strategy.buy_confirmation_repetition,
+                                    self.strategy.buy_confirmation_time):
 
                         print('Trading...')
 
@@ -309,11 +377,12 @@ class Bot:
     def _fc_confirmation_logic(self, target_delta):
 
         bucket_delta_new = self.bucket.max_fall()
-        target_price_snapshot = self.bucket.average_snapshot[0][
+        target_price_snapshot = self.rebound_price_snapshot[0][
             bucket_delta_new[0]][0]
 
         new_price = self.get_price(bucket_delta_new[0])
-        new_target_delta = (new_price - target_price_snapshot) / target_price_snapshot * 100
+        new_target_delta = (
+                                       new_price - target_price_snapshot) / target_price_snapshot * 100
 
         rebound_ratio = (target_delta - new_target_delta) / target_delta
 
@@ -321,7 +390,8 @@ class Bot:
 
     def _cf_trading_loop(self):
         holding_price = self.bucket.prices[0][self.current_holding][0]
-        snapshot_price = self.bucket.average_snapshot[0][self.current_holding][0]
+        snapshot_price = self.bucket.average_snapshot[0][self.current_holding][
+            0]
 
         price_delta = 100 * (holding_price - snapshot_price) / snapshot_price
         print(f'[Crypto-Fiat] delta = {price_delta}% with USDT (latest price '
@@ -336,8 +406,11 @@ class Bot:
             start_time = time.time()
             t_delta = time.time() - start_time
             traded = False
+            aborted = False
 
             while t_delta < self.strategy.rebound_wait_time:
+
+                self._snapshot_refresh()
 
                 t_delta = time.time() - start_time
 
@@ -355,7 +428,8 @@ class Bot:
                     f'    new_price_delta = {new_price_delta}%'
                     f'    @t_delta = {t_delta}s')
 
-                if switched and not (price_delta > self.strategy.cf_delta_threshold):
+                if switched and not (
+                        price_delta > self.strategy.cf_delta_threshold):
                     print(
                         f'Delta threshold is no longer exceeded for the current strategy, aborting trading loop...')
                     aborted = True
@@ -367,7 +441,8 @@ class Bot:
                         f'Confirming...')
 
                     if self.confirm(self._cf_confirmation_logic, price_delta,
-                                    self.strategy.sell_confirmation_repetition, self.strategy.buy_confirmation_time):
+                                    self.strategy.sell_confirmation_repetition,
+                                    self.strategy.buy_confirmation_time):
 
                         print('Trading...')
 
@@ -380,6 +455,7 @@ class Bot:
                         print('Profit snapshot taken')
                         traded = True
                         self.priming = False
+                        self.profit_delta = None
                         break
 
                 if rebound_ratio < 0:
@@ -389,7 +465,7 @@ class Bot:
                 if traded:
                     break
 
-            if not traded:
+            if (not aborted) and (not traded):
                 bucket_delta_new = self.bucket.max_fall()
 
                 print(
@@ -403,12 +479,12 @@ class Bot:
                 self.profit_snapshot = self.current_profit()
                 print('Profit snapshot taken')
                 self.priming = False
-
-            self.profit_delta = None
+                self.profit_delta = None
 
     def _cf_confirmation_logic(self, price_delta):
 
-        snapshot_price = self.bucket.average_snapshot[0][self.current_holding][0]
+        snapshot_price = self.bucket.average_snapshot[0][self.current_holding][
+            0]
 
         new_price = self.get_price(self.current_holding)
         new_price_delta = (new_price - snapshot_price) / snapshot_price * 100
@@ -416,15 +492,12 @@ class Bot:
 
         return rebound_ratio > self.strategy.cf_rebound_ratio
 
-
-
     def _snapshot_refresh(self):
-        if time.time() - self.bucket.average_snapshot[1] > self.strategy.snapshot_refresh_rate:
+        if time.time() - self.bucket.average_snapshot[
+            1] > self.strategy.snapshot_refresh_rate:
             self.bucket.take_snapshot()
             print(
                 f'Snapshot refresh time of {self.strategy.snapshot_refresh_rate}s has elapsed since last saved snapshot, new price snapshot enqueued')
-            self.profit_snapshot = self.current_profit()
-            print('Profit snapshot taken')
 
     def _profit_retention(self) -> bool:
         triggered = False
@@ -449,9 +522,11 @@ class Bot:
 
                 if current_profit_delta > 0:
                     trigger = (self.priming
-                               and (current_profit_delta - self.profit_delta) / self.profit_delta < -self.strategy.cf_rebound_ratio)
+                               and (
+                                           current_profit_delta - self.profit_delta) / self.profit_delta < -self.strategy.cf_rebound_ratio)
                 else:
-                    trigger = ((abs(current_profit_delta) > activation_negative))
+                    trigger = (
+                    (abs(current_profit_delta) > activation_negative))
 
                 if self.priming:
                     print('Positive profit retention mechanism has been primed')
@@ -459,7 +534,10 @@ class Bot:
                 if trigger:
                     print('Profit retention mechanism triggered\n'
                           'Confirming...')
-                    if self.confirm(self._profit_retention_confirmation_logic, None, self.strategy.sell_confirmation_repetition, self.strategy.sell_confirmation_time):
+                    if self.confirm(self._profit_retention_confirmation_logic,
+                                    None,
+                                    self.strategy.sell_confirmation_repetition,
+                                    self.strategy.sell_confirmation_time):
                         print('Trading...')
                         triggered = True
 
@@ -486,7 +564,8 @@ class Bot:
 
         if current_profit_delta > 0:
             trigger = (self.priming
-                       and (current_profit_delta - self.profit_delta) / self.profit_delta < -self.strategy.cf_rebound_ratio)
+                       and (
+                                   current_profit_delta - self.profit_delta) / self.profit_delta < -self.strategy.cf_rebound_ratio)
         else:
             trigger = ((abs(current_profit_delta) > activation_negative))
 
@@ -510,32 +589,32 @@ class Bot:
     def _exit(self) -> bool:
         return False
 
+    def cooldown(self) -> bool:
+        if len(self.bucket.snapshot_queue) < self.bucket.snapshot_queue_size:
+            suspend = True
+            time_anchor = self.bucket.snapshot_queue[0][-1]
+            time_span = (
+                                    self.bucket.snapshot_queue_size - 1) * self.strategy.snapshot_refresh_rate
+        elif time.time() - self.last_sell_time < self.strategy.trading_cooldown_time:
+            suspend = True
+            time_anchor = self.last_sell_time
+            time_span = self.strategy.trading_cooldown_time
+        else:
+            suspend = False
+            time_span = None
+            time_anchor = None
+
+        if suspend:
+            print(
+                f'==== Cooldown in effect, trading suspended. {time_span - (time.time() - time_anchor)} seconds until resumption ====')
+
+        return suspend
+
     # Interfacing Methods
     ############################################################################
     def get_balance(self) -> float:
         return float(
             client.get_asset_balance(asset=self.current_holding)['free'])
-
-    def sell(self, coin: str):
-        balance = float(client.get_asset_balance(asset=coin)['free'])
-
-        tick = None
-
-        for filt in client.get_symbol_info(coin + 'USDT')['filters']:
-            if filt['filterType'] == 'LOT_SIZE':
-                tick = filt['stepSize'].find('1') - 2
-                break
-
-        order_quantity = math.floor(balance * 10 ** tick) / float(10 ** tick)
-        order = client.order_market_sell(
-            symbol=coin + 'USDT',
-            quantity=order_quantity)
-
-        while order['status'] != 'FILLED':
-            print('    Pending order fulfillment...')
-            time.sleep(0.5)
-
-        print('    Order successful')
 
     def current_profit(self) -> float:
         balance = float(
@@ -580,8 +659,32 @@ class Bot:
                 print('    Pending order fulfillment...')
                 time.sleep(0.5)
 
+            self.last_trade_time = time.time()
             print('    Order successful')
 
         except:
             print('    Exception detected, re-attemtpting order')
             self.buy(coin)
+
+    def sell(self, coin: str):
+        balance = float(client.get_asset_balance(asset=coin)['free'])
+
+        tick = None
+
+        for filt in client.get_symbol_info(coin + 'USDT')['filters']:
+            if filt['filterType'] == 'LOT_SIZE':
+                tick = filt['stepSize'].find('1') - 2
+                break
+
+        order_quantity = math.floor(balance * 10 ** tick) / float(10 ** tick)
+        order = client.order_market_sell(
+            symbol=coin + 'USDT',
+            quantity=order_quantity)
+
+        while order['status'] != 'FILLED':
+            print('    Pending order fulfillment...')
+            time.sleep(0.5)
+
+        self.last_trade_time = time.time()
+        self.last_sell_time = time.time()
+        print('    Order successful')
